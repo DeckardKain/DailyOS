@@ -1,0 +1,73 @@
+@inject AppStateService State
+
+<div class="card" style="font-size:13px;color:#8b949e;line-height:1.6">
+    <div style="font-weight:600;color:#e6edf3;margin-bottom:4px">Your Action List</div>
+    Everything that needs doing. Attack one per day during your 15-min power clean or weekend chore blocks.
+</div>
+
+<div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap">
+    <input @bind="newTaskText" @bind:event="oninput"
+           @onkeydown="HandleKeyDown"
+           placeholder="Add a task..."
+           class="task-input" />
+    <select @bind="newTaskCat" class="task-select">
+        @foreach (var c in AppData.TaskCategories)
+        {
+            <option value="@c">@c</option>
+        }
+    </select>
+    <button class="task-add-btn" @onclick="AddTask">Add</button>
+</div>
+
+@{
+    var grouped = State.Tasks.GroupBy(t => t.Category)
+        .OrderBy(g => Array.IndexOf(AppData.TaskCategories, g.Key));
+}
+
+@foreach (var group in grouped)
+{
+    var color = AppData.TaskColors.GetValueOrDefault(group.Key, "#8b949e");
+    var doneCount = group.Count(t => t.Done);
+    <div class="mono label" style="color:@color;margin-top:16px;display:flex;justify-content:space-between">
+        <span>@group.Key</span>
+        <span style="color:#484f58;font-size:10px">@doneCount/@group.Count()</span>
+    </div>
+    @foreach (var task in group)
+    {
+        <div class="task-item @(task.Done ? "done" : "")">
+            <button class="check @(task.Done ? "checked" : "")"
+                    @onclick="async () => { await State.ToggleTaskAsync(task.Id); StateHasChanged(); }">
+                @(task.Done ? "✓" : "")
+            </button>
+            <span style="flex:1;font-size:13px;color:@(task.Done ? "#5bdf8b" : "#c9d1d9");text-decoration:@(task.Done ? "line-through" : "none");line-height:1.5">
+                @task.Text
+            </span>
+            <button class="task-del" @onclick="async () => { await State.DeleteTaskAsync(task.Id); StateHasChanged(); }">×</button>
+        </div>
+    }
+}
+
+@if (State.Tasks.All(t => t.Done) && State.Tasks.Any())
+{
+    <div style="text-align:center;padding:20px;color:#5bdf8b;font-size:14px">
+        All tasks complete. Add new ones or enjoy the clean space. 🏆
+    </div>
+}
+
+@code {
+    private string newTaskText = "";
+    private string newTaskCat = "Environment";
+
+    private async Task AddTask()
+    {
+        if (string.IsNullOrWhiteSpace(newTaskText)) return;
+        await State.AddTaskAsync(newTaskText.Trim(), newTaskCat);
+        newTaskText = "";
+        StateHasChanged();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await AddTask();
+    }
+}

@@ -1,0 +1,69 @@
+@inject SupabaseService Supa
+@inject AppStateService State
+
+<div class="sub-tabs">
+    <button class="sub-tab mono @(_tab == "overall" ? "active" : "")" @onclick='() => SwitchTab("overall")'>overall</button>
+    <button class="sub-tab mono @(_tab == "streak" ? "active" : "")" @onclick='() => SwitchTab("streak")'>streak</button>
+    <button class="sub-tab mono @(_tab == "pinocchio" ? "active" : "")" @onclick='() => SwitchTab("pinocchio")'>🤥</button>
+</div>
+
+@if (_loading)
+{
+    <div style="text-align:center;padding:40px;color:#484f58;font-size:13px">Loading leaderboard...</div>
+}
+else if (_rows.Count == 0)
+{
+    <div style="text-align:center;padding:40px;color:#484f58;font-size:13px">No entries yet. Start completing anchors to appear here.</div>
+}
+else
+{
+    @{ int rank = 0; }
+    @foreach (var row in _rows)
+    {
+        rank++;
+        var isMe = row.UserId == State.UserId;
+        var rankDisplay = rank switch { 1 => "👑", 2 => "🥈", 3 => "🥉", _ => $"#{rank}" };
+        <div class="task-item" style="@(isMe ? "border-color:#2a4a6a;background:#0d1520" : "")">
+            <span class="mono" style="font-size:12px;color:@(rank <= 3 ? "#e6edf3" : "#484f58");min-width:32px;text-align:center">@rankDisplay</span>
+            <span style="font-size:16px">@(row.DisplayEmoji ?? "👤")</span>
+            <span style="flex:1;font-size:14px;color:@(isMe ? "#5bbfdf" : "#c9d1d9");font-weight:@(isMe ? "600" : "400")">@row.Username</span>
+            <span class="mono" style="font-size:13px;color:#5bdf8b;font-weight:600">
+                @if (_tab == "overall") { @row.AdjustedTotal.ToString("N0") }
+                @if (_tab == "streak") { <text>🔥 @row.CurrentStreak</text> }
+                @if (_tab == "pinocchio") { <text>🤥 @row.TotalPinocchio.ToString("N0")</text> }
+            </span>
+        </div>
+    }
+}
+
+@code {
+    private string _tab = "overall";
+    private bool _loading = true;
+    private List<LeaderboardRow> _rows = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBoard();
+    }
+
+    private async Task SwitchTab(string tab)
+    {
+        _tab = tab;
+        _loading = true;
+        StateHasChanged();
+        await LoadBoard();
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private async Task LoadBoard()
+    {
+        _rows = _tab switch
+        {
+            "streak" => await Supa.GetStreakLeaderboard(),
+            "pinocchio" => await Supa.GetPinocchioLeaderboard(),
+            _ => await Supa.GetOverallLeaderboard()
+        };
+        _loading = false;
+    }
+}

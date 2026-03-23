@@ -1,0 +1,105 @@
+@inject AppStateService State
+
+<div class="sub-tabs">
+    <button class="sub-tab mono @(showWeekend ? "" : "active")" @onclick="() => showWeekend = false">weekday</button>
+    <button class="sub-tab mono @(showWeekend ? "active" : "")" @onclick="() => showWeekend = true">weekend</button>
+</div>
+
+<div class="card">
+    <div class="mono label" style="color:#df8b5b;padding-left:0;margin-bottom:10px">WORKOUT ROTATION</div>
+    @foreach (var w in AppData.Workouts)
+    {
+        <div style="display:flex;gap:10px;margin-bottom:6px;font-size:13px;line-height:1.5">
+            <span class="mono" style="font-weight:600;color:#8b949e;min-width:40px;font-size:11px">@w.Day[..3]</span>
+            <span style="color:#df8b5b;font-weight:600;min-width:90px">@w.Type</span>
+            <span style="color:#8b949e">@w.Notes</span>
+        </div>
+    }
+</div>
+
+<!-- Edit toggle -->
+<div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+    <button class="reset-btn" style="font-size:11px" @onclick="() => _editMode = !_editMode">
+        @(_editMode ? "✓ Done editing" : "✎ Edit schedule")
+    </button>
+</div>
+
+@{ var schedule = showWeekend ? State.ActiveWeekendSchedule : State.ActiveWeekdaySchedule; var idx = 0; }
+@foreach (var s in schedule)
+{
+    var cc = AppData.Colors.GetValueOrDefault(s.Category, new CategoryColor{Bg="#1a1a2a",Text="#7b7baf",Border="#2a2a4a"});
+    var isOdd = idx % 2 == 0;
+    var capturedIdx = idx;
+    <div class="sched-row" style="border-left:3px solid @cc.Border;background:@(isOdd ? "#0d1117" : "#111318");display:flex;align-items:center">
+        <span class="mono" style="font-size:12px;color:#8b949e;min-width:48px;flex-shrink:0;padding-top:1px">@s.Time</span>
+        <div style="flex:1">
+            <div style="font-size:14px;color:@cc.Text;font-weight:500">@s.Task</div>
+            @if (!string.IsNullOrEmpty(s.Duration))
+            {
+                <span style="font-size:11px;color:#484f58">@s.Duration</span>
+            }
+        </div>
+        @if (_editMode)
+        {
+            <button class="task-del" @onclick="async () => { await State.RemoveScheduleItemAsync(showWeekend, capturedIdx); StateHasChanged(); }">×</button>
+        }
+    </div>
+    idx++;
+}
+
+@if (_editMode)
+{
+    <div class="card" style="margin-top:12px">
+        <div class="mono label" style="color:#5bbfdf;padding-left:0;margin-bottom:8px">ADD SCHEDULE BLOCK</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+            <input type="text" @bind="_newTime" placeholder="7:00" class="task-input" style="width:70px" />
+            <input type="text" @bind="_newTask" placeholder="What to do..." class="task-input" style="flex:1;min-width:160px" />
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <select @bind="_newCat" class="task-select">
+                @foreach (var c in AppData.Colors.Keys)
+                {
+                    <option value="@c">@c</option>
+                }
+            </select>
+            <input type="text" @bind="_newDuration" placeholder="30 min" class="task-input" style="width:80px" />
+            <button class="task-add-btn" @onclick="AddItem">+ Add</button>
+        </div>
+    </div>
+}
+
+<div class="card" style="margin-top:16px;line-height:1.7;font-size:13px;color:#8b949e">
+    <div style="font-weight:600;color:#e6edf3;margin-bottom:6px">The Rules</div>
+    <div>→ <strong style="color:#df5b8b">Kids bedtime boundary — this is the domino.</strong> 6:30 wind-down starts. 7:00 they're in their space. This unlocks your entire evening.</div>
+    <div>→ <strong style="color:#9b8bef">Spiritual practice is non-negotiable.</strong> Dream journal + pranayama + meditation before anything else.</div>
+    <div>→ <strong style="color:#dfdf5b">STARTUP RITUAL before every deep work block.</strong> Open project → read last note → write 1 target. 5 minutes.</div>
+    <div>→ <strong style="color:#dfdf5b">If you feel the gaming pull:</strong> Do the startup ritual anyway. 5 minutes. You won't want to stop.</div>
+    <div>→ <strong style="color:#7b7baf">Naps are training, not laziness.</strong> Greek nap + micro-naps consolidate learning and collect energy.</div>
+    <div>→ <strong style="color:#5bdf8b">70% is a win.</strong> Consistency over perfection.</div>
+    <div>→ <strong style="color:#5bbfdf">Two bad days?</strong> That's a pattern. Override it on day 3.</div>
+    <div>→ <strong style="color:#df8b5b">Weekend bedtime:</strong> 10:30pm LATEST.</div>
+    <div>→ <strong style="color:#df8b5b">F45 ramp-up:</strong> 3× first two weeks, then add a 4th day.</div>
+    <div>→ <strong style="color:#bfaf5b">Plan tomorrow tonight.</strong> Tasks, meals, targets. No decision fatigue in the morning.</div>
+</div>
+
+@code {
+    private bool showWeekend;
+    private bool _editMode;
+    private string _newTime = "";
+    private string _newTask = "";
+    private string _newCat = "work";
+    private string _newDuration = "";
+
+    protected override void OnInitialized()
+    {
+        showWeekend = State.IsWeekend;
+    }
+
+    private async Task AddItem()
+    {
+        if (string.IsNullOrWhiteSpace(_newTime) || string.IsNullOrWhiteSpace(_newTask)) return;
+        await State.AddScheduleItemAsync(showWeekend, _newTime.Trim(), _newTask.Trim(), _newCat, _newDuration.Trim());
+        _newTime = ""; _newTask = ""; _newDuration = "";
+        StateHasChanged();
+    }
+}

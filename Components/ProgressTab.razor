@@ -1,0 +1,67 @@
+@inject AppStateService State
+
+@{ var streak = State.GetStreak(); var last7 = State.GetLast7(); }
+
+<div style="background:linear-gradient(135deg,#161b22,#1a2a3a);border:1px solid #21262d;border-radius:12px;padding:24px;text-align:center;margin-bottom:20px">
+    <div style="font-size:48px;font-weight:700;color:@(streak > 0 ? "#5bbfdf" : "#484f58")">@streak</div>
+    <div class="mono" style="font-size:13px;color:#8b949e;letter-spacing:1px;text-transform:uppercase">day streak</div>
+    <div style="font-size:12px;color:#484f58;margin-top:8px">70%+ anchors = day counts</div>
+</div>
+
+<div class="mono label" style="color:#8b949e">LAST 7 DAYS</div>
+<div style="display:flex;gap:6px;margin-bottom:24px">
+    @foreach (var d in last7)
+    {
+        var p = d.Data?.Pct ?? 0;
+        var barColor = p >= 70 ? "#5bdf8b" : p >= 40 ? "#dfdf5b" : p > 0 ? "#df5b5b" : "#21262d";
+        <div class="bar-col">
+            <div class="bar-outer @(d.IsToday ? "today-bar" : "")">
+                <div class="bar-fill" style="height:@(Math.Max(p, 4))%;background:@barColor"></div>
+            </div>
+            <div class="mono" style="font-size:10px;color:@(d.IsToday ? "#e6edf3" : "#484f58");margin-top:6px;font-weight:@(d.IsToday ? 700 : 400)">@d.Label</div>
+            <div style="font-size:10px;color:#484f58">@(p > 0 ? $"{p}%" : "—")</div>
+        </div>
+    }
+</div>
+
+<div class="card" style="line-height:1.8;font-size:13px;color:#8b949e">
+    <div style="font-weight:600;color:#e6edf3;margin-bottom:8px;font-size:15px">Your Operating Philosophy</div>
+
+    <div style="margin-bottom:10px">
+        <strong style="color:#9b8bef">Energy In, Energy Out:</strong> You collect energy, not just spend it. Spiritual practice fills the deepest well. Naps consolidate learning. Food fuels without burdening. Every block has an energy direction.
+    </div>
+    <div style="margin-bottom:10px">
+        <strong style="color:#dfdf5b">The Startup Ritual:</strong> Your dream project has high activation energy. Gaming has zero. The fix: 5-minute startup ritual before every deep work block. Open project, read last note, write ONE target. Momentum does the rest.
+    </div>
+    <div style="margin-bottom:10px">
+        <strong style="color:#5bdf8b">The 70% Rule:</strong> Hit 70% of your anchors and the day is green. About 18 out of 26. You don't need perfection. You need consistency.
+    </div>
+    <div style="margin-bottom:10px">
+        <strong style="color:#5bbfdf">The 2-Day Rule:</strong> Never miss twice. One off day is life with toddlers. Two off days is a pattern forming. A mediocre day that keeps the streak alive beats a perfect plan you abandoned.
+    </div>
+    <div style="margin-bottom:10px">
+        <strong style="color:#cf7bdf">Guitar Overload + Nap:</strong> Intense focused session → immediate rest → nervous system consolidates motor patterns. Skill compounds faster than grinding for hours.
+    </div>
+    <div>
+        <strong style="color:#df8b5b">The Weed Replacement:</strong> When you feel the pull, name what your body is asking for: rest, reward, or escape. Pranayama handles the calm. The nap handles the recharge. Evening wind-down handles decompression.
+    </div>
+</div>
+
+<div style="margin-top:24px;display:flex;gap:8px">
+    <button class="reset-btn" @onclick="ResetToday">Reset Today</button>
+    <button class="reset-btn danger" @onclick="ResetAll">Reset Everything</button>
+</div>
+
+@code {
+    private async Task ResetToday()
+    {
+        await State.ResetTodayAsync();
+        StateHasChanged();
+    }
+
+    private async Task ResetAll()
+    {
+        await State.ResetEverythingAsync();
+        StateHasChanged();
+    }
+}

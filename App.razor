@@ -1,0 +1,12 @@
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>DailyOS</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <div style="text-align:center;padding:60px;color:#8b949e">Page not found. <a href="" style="color:#5bbfdf">← Back</a></div>
+        </LayoutView>
+    </NotFound>
+</Router>

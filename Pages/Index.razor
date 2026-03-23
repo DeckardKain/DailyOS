@@ -1,0 +1,68 @@
+@page "/"
+@inject AppStateService State
+@inject NavigationManager Nav
+
+@if (!State.IsLoaded)
+{
+    <div class="loading">Loading your system...</div>
+}
+else if (!State.IsLoggedIn)
+{
+    <div class="loading">
+        <div style="text-align:center">
+            <div style="color:#e6edf3;font-size:18px;margin-bottom:12px">Welcome to DailyOS</div>
+            <a href="register" style="color:#5bbfdf;font-size:14px">Claim your username →</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="header">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <div class="mono label" style="color:#8b949e;margin-bottom:0">DAILY OPERATING SYSTEM</div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:13px">
+                <span>@(State.UserEmoji ?? "👤")</span>
+                <span style="color:#8b949e">@State.Username</span>
+            </div>
+        </div>
+        <div class="day-title">
+            @State.DayName<span class="day-date"> — @State.DateDisplay</span>
+        </div>
+        <div class="pills">
+            <div class="pill @(State.Percentage >= 70 ? "pill-green" : State.Percentage >= 40 ? "pill-yellow" : "pill-red")">
+                @State.CompletedCount/@State.TotalAnchors anchors — @State.Percentage%
+            </div>
+            @if (State.GetStreak() > 0)
+            {
+                <div class="pill pill-blue">@State.GetStreak() day streak 🔥</div>
+            }
+        </div>
+    </div>
+
+    <div class="tabs">
+        @foreach (var t in new[] { "today", "schedule", "nutrition", "tasks", "progress", "board" })
+        {
+            <button class="tab mono @(activeTab == t ? "active" : "")" @onclick="() => activeTab = t">@(t == "board" ? "🏆" : t)</button>
+        }
+    </div>
+
+    @if (activeTab == "today") { <TodayTab /> }
+    @if (activeTab == "schedule") { <ScheduleTab /> }
+    @if (activeTab == "nutrition") { <NutritionTab /> }
+    @if (activeTab == "tasks") { <TasksTab /> }
+    @if (activeTab == "progress") { <ProgressTab /> }
+    @if (activeTab == "board") { <LeaderboardTab /> }
+}
+
+@code {
+    private string activeTab = "today";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await State.LoadAsync();
+            StateHasChanged();
+        }
+    }
+}
